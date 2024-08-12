@@ -19,7 +19,6 @@ player_skin = "PinkMan"
 
 #Pause menu stuff
 pause_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-#pause = False
 
 def flip(sprites):
     return [pygame.transform.flip(sprite, True, False) for sprite in sprites]
@@ -208,7 +207,8 @@ class Fire(Object):
                 self.animation_count = 0
             
         self.update()
-            
+
+          
         
 def get_background(name):
     image = pygame.image.load(join("assets", "Background", name))
@@ -238,14 +238,15 @@ def draw_pause():
     pygame.draw.rect(pause_surface, ('yellow'), [200, 150, 600, 50])
     reset = pygame.draw.rect(pause_surface, ('green'), [200, 220, 280, 50])
     save = pygame.draw.rect(pause_surface, ('green'), [520, 220, 280, 50])
+    quit = pygame.draw.rect(pause_surface, ('red'), [200, 290, 600, 50])
     pause_surface.blit(FONT.render('Game paused: press esc to resume', True, 'black'), (220, 160))
     pause_surface.blit(FONT.render('Restart', True, 'black'), (220, 230))
-    pause_surface.blit(FONT.render('Save', True, 'black'), (520, 230))
+    pause_surface.blit(FONT.render('Save', True, 'black'), (540, 230))
+    pause_surface.blit(FONT.render('Quit', True, 'black'), (220, 300))
     window.blit(pause_surface, (0, 0))
     pygame.display.update()
-    return reset, save
-    
-    
+    return reset, save, quit    
+        
     
 def handle_vertical_collision(player, objects, dy):
     collided_objects = []
@@ -292,7 +293,8 @@ def handle_move(player, objects):
     for obj in to_check:
         if obj and obj.name == "fire":
             player.make_hit()
-            
+  
+                
 
 def main(window):
     clock = pygame.time.Clock()
@@ -330,16 +332,21 @@ def main(window):
                     
             if event.type == pygame.MOUSEBUTTONDOWN and pause:
                 if restart.collidepoint(event.pos):
+                    player = Player(100,100,50,50)
+                    offset_x = 0
                     pause = False
+                elif saves.collidepoint(event.pos):
+                    pause = False
+                elif quit.collidepoint(event.pos):
+                    run = False
                            
-            
                     
         if not pause:
             player.loop(FPS)
             fire.loop()
             handle_move(player, objects)
         else:
-            restart, saves = draw_pause()
+            restart, saves, quit = draw_pause()
         if not pause:
             pygame.display.update()
             draw(window, background, bg_image, player, objects, offset_x)
