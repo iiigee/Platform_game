@@ -12,9 +12,14 @@ BG_COLOR = (255, 255, 255)
 WIDTH, HEIGHT = 1000, 800
 FPS = 60
 PLAYER_VEL = 5
+FONT = pygame.font.SysFont("sans", 12)
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 player_skin = "PinkMan"
+
+#Pause menu stuff
+pause_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+#pause = False
 
 def flip(sprites):
     return [pygame.transform.flip(sprite, True, False) for sprite in sprites]
@@ -50,8 +55,8 @@ def get_block(size):
     rect = pygame.Rect(96, 0, size, size)
     surface.blit(image, (0, 0), rect)
     return pygame.transform.scale2x(surface)
-    
 
+        
 class Player(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 1
@@ -97,6 +102,7 @@ class Player(pygame.sprite.Sprite):
         if self.direction != "right":
             self.direction = "right"
             self.animation_count = 0
+            
 
     def loop(self, fps):
         self.y_vel += min(1, (self.fall_count / fps) * self.GRAVITY)
@@ -144,6 +150,10 @@ class Player(pygame.sprite.Sprite):
     def update(self):
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
         self.mask = pygame.mask.from_surface(self.sprite)
+        
+            
+    
+                            
         
     def draw(self, win, offset_x):
         win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
@@ -223,6 +233,20 @@ def draw(window, background, bg_image, player, objects, offset_x):
     
     pygame.display.update()
     
+def draw_pause():
+    pygame.draw.rect(pause_surface, (128, 128, 128, 150), [0, 0, WIDTH, HEIGHT])
+    pygame.draw.rect(pause_surface, ('yellow'), [200, 150, 600, 50])
+    reset = pygame.draw.rect(pause_surface, ('green'), [200, 220, 280, 50])
+    save = pygame.draw.rect(pause_surface, ('green'), [520, 220, 280, 50])
+    pause_surface.blit(FONT.render('Game paused: press esc to resume', True, 'black'), (220, 160))
+    pause_surface.blit(FONT.render('Restart', True, 'black'), (220, 230))
+    pause_surface.blit(FONT.render('Save', True, 'black'), (520, 230))
+    window.blit(pause_surface, (0, 0))
+    pygame.display.update()
+    return reset, save
+    
+    
+    
 def handle_vertical_collision(player, objects, dy):
     collided_objects = []
     for obj in objects:
@@ -268,11 +292,12 @@ def handle_move(player, objects):
     for obj in to_check:
         if obj and obj.name == "fire":
             player.make_hit()
+            
 
 def main(window):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
-    
+    pause = False
     block_size = 96
     
     player = Player(100, 100, 50, 50)
@@ -297,12 +322,27 @@ def main(window):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and player.jump_count < 2:
                     player.jump()
-        
-        player.loop(FPS)
-        fire.loop()
-        handle_move(player,  objects)    
-        draw(window, background, bg_image, player, objects, offset_x)
-        
+                if event.key == pygame.K_ESCAPE:
+                    if pause: 
+                        pause = False
+                    else:
+                        pause = True
+                    
+            if event.type == pygame.MOUSEBUTTONDOWN and pause:
+                if restart.collidepoint(event.pos):
+                    pause = False
+                           
+            
+                    
+        if not pause:
+            player.loop(FPS)
+            fire.loop()
+            handle_move(player, objects)
+        else:
+            restart, saves = draw_pause()
+        if not pause:
+            pygame.display.update()
+            draw(window, background, bg_image, player, objects, offset_x)
         
         if((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or ((player.rect.left -offset_x <= scroll_area_width) and player.x_vel < 0):
             offset_x += player.x_vel
