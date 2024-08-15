@@ -63,7 +63,9 @@ class Player(pygame.sprite.Sprite):
     COLOR = (255, 0, 0)
     GRAVITY = 1
     SPRITES = load_sprite_sheets("MainCharacters", player_skin, 32, 32, True)
+    SPAWN = load_sprite_sheets("MainCharacters", "Appear", 96,96, False)
     ANIMATION_DELAY = 3
+    SPAWN_ANIMATION_DELAY = 7   
     
     def __init__(self, x, y, width, height):
         super().__init__()
@@ -77,6 +79,12 @@ class Player(pygame.sprite.Sprite):
         self.jump_count = 0
         self.hit = False
         self.hit_count = 0
+        self.spawning = True
+        
+        print(self.SPAWN.keys())
+        self.appear = load_sprite_sheets("MainCharacters", "Appear", 96, 96)
+        
+        
         
     def jump(self):
         self.y_vel = -self.GRAVITY * 8
@@ -128,23 +136,41 @@ class Player(pygame.sprite.Sprite):
         self.count = 0
         self.y_vel *= -1
         
-    def update_sprite(self):
+    def update_sprite(self):     
         sprite_sheet = "idle"
-        if self.hit:
+        if self.spawning:
+            count = 0
+            sprite_sheet_name = "Appearing"
+            sprites = self.SPAWN[sprite_sheet_name]
+            sprite_index = (self.animation_count // self.SPAWN_ANIMATION_DELAY) % len(sprites)
+            self.y_vel = 0
+            self.fall_count = 0
+            if sprite_index == len(sprites) - 1:
+                self.spawning = False
+                self.animation_count = 0
+            else:
+                self.sprite = sprites[sprite_index]
+                self.animation_count += 1
+                count += 1
+                self.y_vel = 0
+                self.update()
+                return
+        elif self.hit and not self.spawning: 
             sprite_sheet = "hit"
-        elif self.y_vel < 0:
+        elif self.y_vel < 0 and not self.spawning:
             if self.jump_count == 1:
                 sprite_sheet = "jump"
-            elif self.jump_count == 2:
+            elif self.jump_count == 2 and not self.spawning:
                 sprite_sheet = "double_jump"
-        elif self.y_vel > self.GRAVITY * 2:
+        elif self.y_vel > self.GRAVITY * 2 and not self.spawning:
             sprite_sheet = "fall"
-        elif self.x_vel != 0:
+        elif self.x_vel != 0 and not self.spawning:
             sprite_sheet = "run"
-            
-        sprite_sheet_name = sprite_sheet + "_" + self.direction
-        sprites = self.SPRITES[sprite_sheet_name]
-        sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        if not self.spawning:    
+            sprite_sheet_name = sprite_sheet + "_" + self.direction
+            sprites = self.SPRITES[sprite_sheet_name]
+            sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        sprite_sheet = "idle"
         self.sprite = sprites[sprite_index]
         self.animation_count += 1
         self.update()
@@ -153,12 +179,12 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
         self.mask = pygame.mask.from_surface(self.sprite)
         
-            
-    
-                            
         
     def draw(self, win, offset_x, offset_y):
-        win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y- offset_y))
+        if self.spawning:
+            win.blit(self.sprite, (self.rect.x - offset_x  - 62, self.rect.y - offset_y -72))
+        else:
+            win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y - offset_y))
         
 class Object(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height, name=None):
@@ -210,6 +236,7 @@ class Fire(Object):
                 self.animation_count = 0
             
         self.update()
+        
 
           
         
@@ -307,21 +334,27 @@ def draw_walls(x, start, stop):
     list = [Block(block_size * x, HEIGHT - block_size * i, block_size) for i in range(start, stop)]
     return list
 
+
 def main(window):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
     pause = False
     block_size = 96
-    
-    player = Player(100, 100, 50, 50)
-    fire = Fire(500, HEIGHT - block_size -64, 16, 32)
+     
+    player = Player(250, HEIGHT - block_size * 2, 50, 50)
+    fire = Fire(450, HEIGHT - block_size -64, 16, 32)
     fire.on()
-    floor = [Block(i * block_size, HEIGHT - block_size, block_size) for i in range(-WIDTH // block_size, WIDTH * 5 // block_size)]
-    platform1 = draw_platforms(5, 1, 5)
-    wall1 = draw_walls(5, 2, 10)
-    wall2 = draw_walls(-3, 2, 5) 
     
-    objects = [*wall1, *wall2, *platform1, *floor, Block(0, HEIGHT - block_size * 5, block_size), Block(0, HEIGHT - block_size * 4, block_size), Block(0, HEIGHT - block_size *2, block_size), fire]
+    floor = [Block(i * block_size, HEIGHT - block_size, block_size) for i in range(-WIDTH // block_size, WIDTH * 5 // block_size)]
+    
+    platform1 = draw_platforms(5, 1, 5)
+    
+    wall1 = draw_walls(5, 2, 6)
+    wall2 = draw_walls(-3, 2, 5)
+    wall3 = draw_walls(-4, 2, 4)
+    wall4 = draw_walls(-5, 2, 3) 
+    
+    objects = [*wall1, *wall2, *wall3, *wall4, *platform1, *floor, Block(0, HEIGHT - block_size * 5, block_size), Block(0, HEIGHT - block_size * 4, block_size), Block(0, HEIGHT - block_size *2, block_size), fire]
     
     offset_x = 0
     offset_y = 0
@@ -338,6 +371,8 @@ def main(window):
                 break
         
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_x:
+                    player = Player(100, 100, 50, 50)
                 if event.key == pygame.K_SPACE and player.jump_count < 2:
                     player.jump()
                 if event.key == pygame.K_ESCAPE:
@@ -348,7 +383,7 @@ def main(window):
                     
             if event.type == pygame.MOUSEBUTTONDOWN and pause:
                 if restart.collidepoint(event.pos):
-                    player = Player(100,100,50,50)
+                    player = Player(250, HEIGHT - block_size * 2, 50, 50)
                     offset_x = 0
                     offset_y = 0
                     pause = False
@@ -360,6 +395,7 @@ def main(window):
                     
         if not pause:
             player.loop(FPS)
+            handle_move(player, objects)
             fire.loop()
             handle_move(player, objects)
         else:
