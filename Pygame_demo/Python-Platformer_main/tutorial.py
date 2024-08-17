@@ -253,15 +253,16 @@ class Fire(Object):
 
           
         
-def get_background():
-    image = pygame.image.load(join("assets", "Background", "nature_1", "origbig.png"))
+def get_background(name):
+    image = pygame.image.load(join("assets", "Background", "nature_1", name))
     __, __, width, height = image.get_rect()
+    image = pygame.transform.scale(image, (WIDTH, HEIGHT))
     return image
    
             
 
-def draw(window, bg_image, player, objects, offset_x, offset_y):
-    window.blit(bg_image, (0,0))
+def draw(window, bg_image, player, objects, offset_x, offset_y, x, y):
+    window.blit(bg_image, (x, y))
         
     for obj in objects:
         obj.draw(window, offset_x, offset_y)
@@ -341,37 +342,59 @@ def draw_walls(x, start, stop):
     list = [Block(block_size * x, HEIGHT - block_size * i, block_size) for i in range(start, stop)]
     return list
 
+def draw_objects(object, x, y, width, height):
+    block_size = 96
+    return object(block_size * x, block_size * y, width, height)
 
 def main(window):
     clock = pygame.time.Clock()
-    bg_image = get_background()
+    
+    bg_image = get_background("orig.png")
+    bg_image2 = get_background("10.png")
+    
+
     pause = False
     block_size = 96
      
     player = Player(250, HEIGHT - block_size * 2, 50, 50)
-    fire = Fire(450, HEIGHT - block_size -64, 16, 32)
+    fire = Fire(block_size * 31, 0, 16, 32)
     fire.on()
     
-    floor = [Block(i * block_size, HEIGHT - block_size, block_size) for i in range(-WIDTH // block_size, WIDTH * 5 // block_size)]
+    #floor = [Block(i * block_size, HEIGHT - block_size, block_size) for i in range(0 // block_size, WIDTH * 5 // block_size)]
+    blocks = [ 
+        draw_platforms(1, 0, 7),
+        draw_platforms(1, 9, 15),
+        draw_walls(0, 2, 6),
+        draw_walls(15, -3, 4),
+        draw_platforms(1, 18, 26),
+        draw_walls(25, 2, 9),
+        draw_platforms(4, 16, 23),
+        draw_platforms(-3, 15, 30),
+        draw_platforms(-1, 28, 30),
+        draw_platforms(1, 26, 27),
+        draw_platforms(3, 28, 30),
+        draw_platforms(5, 26, 28),
+        draw_platforms(7, 29, 30),
+        draw_walls(30, -3, 9),
+        draw_platforms(7, 30, 37),
+    ]
     
-    platform1 = draw_platforms(5, 1, 5)
     
-    wall1 = draw_walls(5, 2, 6)
-    wall2 = draw_walls(-3, 2, 5)
-    wall3 = draw_walls(-4, 2, 4)
-    wall4 = draw_walls(-5, 2, 3) 
-    
-    objects = [*wall1, *wall2, *wall3, *wall4, *platform1, *floor, Block(0, HEIGHT - block_size * 5, block_size), Block(0, HEIGHT - block_size * 4, block_size), Block(0, HEIGHT - block_size *2, block_size), fire]
+    objects = [element for block in blocks for element in block]
     
     offset_x = 0
     offset_y = 0
     scroll_area_width = 200
     scroll_area_height = 250
+    
+    print(player.rect.x, player.rect.y)
+    
 
     run = True
     while run:
         clock.tick(FPS)
-        
+        bg_x = 0
+        bg_y = 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -400,7 +423,7 @@ def main(window):
                     pause = False
                 elif quit.collidepoint(event.pos):
                     run = False
-                           
+                      
                     
         if not pause:
             player.loop(FPS)
@@ -411,13 +434,15 @@ def main(window):
             restart, saves, quit = draw_pause()
         if not pause:
             pygame.display.update()
-            draw(window, bg_image, player, objects, offset_x, offset_y)
+            draw(window, bg_image, player, objects, offset_x, offset_y, bg_x, bg_y)
         
         if((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or ((player.rect.left -offset_x <= scroll_area_width) and player.x_vel < 0):
             offset_x += player.x_vel
             
         if((player.rect.top - offset_y >= HEIGHT - scroll_area_height) and player.y_vel > 0) or ((player.rect.bottom - offset_y <= scroll_area_height) and player.y_vel < 0):
             offset_y += player.y_vel
+            
+        
 
     pygame.quit()
     quit()
