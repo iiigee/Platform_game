@@ -9,11 +9,10 @@ pygame.init()
 pygame.display.set_caption("Platformer")
 
 BG_COLOR = (255, 255, 255)
-WIDTH, HEIGHT = 1000, 800
+WIDTH, HEIGHT = 1500, 1000
 FPS = 60
 PLAYER_VEL = 5
 FONT = pygame.font.SysFont("sans", 12)
-
      
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -60,16 +59,25 @@ def get_block(size):
 
         
 class Player(pygame.sprite.Sprite):
+    PINKMAN = load_sprite_sheets("MainCharacters", "PinkMan", 32, 32, True)
+    MASKDUDE = load_sprite_sheets("MainCharacters", "MaskDude", 32, 32, True)
+    NINJAFROG = load_sprite_sheets("MainCharacters", "NinjaFrog", 32, 32, True)
+    VIRTUALGUY = load_sprite_sheets("MainCharacters", "VirtualGuy", 32, 32, True)
+
     COLOR = (255, 0, 0)
     GRAVITY = 1
-    SPRITES = load_sprite_sheets("MainCharacters", player_skin, 32, 32, True)
+    #SPRITES = load_sprite_sheets("MainCharacters", player_skin, 32, 32, True]
+    SPRITES = [PINKMAN, MASKDUDE, NINJAFROG, VIRTUALGUY]
     SPAWN = load_sprite_sheets("MainCharacters", "Appear", 96,96, False)
     ANIMATION_DELAY = 3
-    SPAWN_ANIMATION_DELAY = 7   
+    SPAWN_ANIMATION_DELAY = 7
+    
+       
     
     def __init__(self, x, y, width, height):
         super().__init__()
         self.rect = pygame.Rect(x, y, width, height)
+        self.character = 0
         self.x_vel = 0
         self.y_vel = 0
         self.mask = None
@@ -81,11 +89,16 @@ class Player(pygame.sprite.Sprite):
         self.hit_count = 0
         self.spawning = True
         
+        
         print(self.SPAWN.keys())
         self.appear = load_sprite_sheets("MainCharacters", "Appear", 96, 96)
         
-        
-        
+    def change_character(self):
+        if self.character < 3:
+            self.character += 1
+        else:
+            self.character = 0
+            
     def jump(self):
         self.y_vel = -self.GRAVITY * 8
         self.animation_count = 0
@@ -168,7 +181,7 @@ class Player(pygame.sprite.Sprite):
             sprite_sheet = "run"
         if not self.spawning:    
             sprite_sheet_name = sprite_sheet + "_" + self.direction
-            sprites = self.SPRITES[sprite_sheet_name]
+            sprites = self.SPRITES[self.character][sprite_sheet_name]
             sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
         sprite_sheet = "idle"
         self.sprite = sprites[sprite_index]
@@ -240,21 +253,15 @@ class Fire(Object):
 
           
         
-def get_background(name):
-    image = pygame.image.load(join("assets", "Background", name))
+def get_background():
+    image = pygame.image.load(join("assets", "Background", "nature_1", "origbig.png"))
     __, __, width, height = image.get_rect()
-    tiles = []
-    
-    for i in range(WIDTH // width + 1):
-        for j in range(HEIGHT // height +1):
-            pos = [i * width, j * height]
-            tiles.append(pos)
+    return image
+   
             
-    return tiles, image
 
-def draw(window, background, bg_image, player, objects, offset_x, offset_y):
-    for tile in background:
-        window.blit(bg_image, tile)
+def draw(window, bg_image, player, objects, offset_x, offset_y):
+    window.blit(bg_image, (0,0))
         
     for obj in objects:
         obj.draw(window, offset_x, offset_y)
@@ -337,7 +344,7 @@ def draw_walls(x, start, stop):
 
 def main(window):
     clock = pygame.time.Clock()
-    background, bg_image = get_background("Blue.png")
+    bg_image = get_background()
     pause = False
     block_size = 96
      
@@ -371,6 +378,8 @@ def main(window):
                 break
         
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    player.change_character()
                 if event.key == pygame.K_x:
                     player = Player(100, 100, 50, 50)
                 if event.key == pygame.K_SPACE and player.jump_count < 2:
@@ -402,7 +411,7 @@ def main(window):
             restart, saves, quit = draw_pause()
         if not pause:
             pygame.display.update()
-            draw(window, background, bg_image, player, objects, offset_x, offset_y)
+            draw(window, bg_image, player, objects, offset_x, offset_y)
         
         if((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or ((player.rect.left -offset_x <= scroll_area_width) and player.x_vel < 0):
             offset_x += player.x_vel
